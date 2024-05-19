@@ -161,7 +161,7 @@ class RoomController{
             )
 
             const randRoomNum = Math.floor(Math.random() * (emptyRoom.count - 0) + 0)
-            const randRoomId = 1//emptyRoom.rows[randRoomNum].roomId
+            const randRoomId = emptyRoom.rows[randRoomNum].roomId
             const myNewRoom = await firstLvl.findOne(
                 {
                     where: {id: randRoomId},

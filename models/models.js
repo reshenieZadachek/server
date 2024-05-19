@@ -105,7 +105,7 @@ secondLvl.belongsTo(Rooms)
 Rooms.hasMany(thirdLvl)
 thirdLvl.belongsTo(Rooms)
 
-User.hasMany(UserInfoOpen, {as: 'info'});
+User.hasMany(UserInfoOpen)
 UserInfoOpen.belongsTo(User)
 
 User.hasOne(Rewiews)

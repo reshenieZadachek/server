@@ -5,6 +5,7 @@ const jwt = require('jsonwebtoken')
 const uuid = require('uuid')
 const path = require('path')
 const { userInfo } = require("os")
+const e = require("cors")
 
 const generateJWT = (id, login, email, balance,avatar, usname, ussurname, role, code, room, roomlvl, price) => {
     return jwt.sign(
@@ -17,7 +18,7 @@ const generateJWT = (id, login, email, balance,avatar, usname, ussurname, role, 
 class UserController{
     async registration(req,res, next){
         try {
-            const {login, password, email, role, code } = req.body
+            const {login, password, email, role, code, flag } = req.body
         if(!email || !password) {
             return next(ApiError.badRequest('Некорректный email или пароль'))
         }
@@ -26,9 +27,15 @@ class UserController{
             return next(ApiError.badRequest('Пользователь с таким логином уже существует'))
         }
         const hashPassword = await bcrypt.hash(password, 5)
-        const {file} = req.files
-        let fileName = uuid.v4() + ".jpg"
-        file.mv(path.resolve(__dirname, '..', 'static', fileName))
+        let fileName
+        if(flag === 'true'){
+            const {file} = req.files
+            fileName = uuid.v4() + ".jpg"
+            file.mv(path.resolve(__dirname, '..', 'static', fileName))
+        }
+        else{
+            fileName = "prof.svg"
+        }
         let refCode;
         while(true){
             refCode = uuid.v4()
@@ -42,7 +49,7 @@ class UserController{
         if(cand){
             leadCode = cand.id
         } 
-        const user = await User.create({login: login, password: hashPassword, email: email, balance: 1000, avatar: fileName, role: role, leader: leadCode })
+        const user = await User.create({login: login, password: hashPassword, email: email, balance: 0, avatar: fileName, role: role, leader: leadCode })
         const userInfo = await UserInfoOpen.create({usId:user.id, login: user.login, code: refCode, avatar: user.avatar, confLogin:null , confPhoto:null , confStat: null})
         const token = generateJWT(user.id, user.login, user.email, user.balance, user.avatar, userInfo.name, userInfo.surname, user.role, userInfo.code, user.room, user.roomLvl,user.price)
         return res.json({token})
@@ -110,7 +117,8 @@ class UserController{
                 }
             }
             await User.update({login: login,email: email},{where: {id}})
-            await UserInfoOpen.update({ login: login, name: name,surname: surname, code: refCode},{where: {id}})
+            await UserInfoOpen.update({ login: login, name: name,surname: surname, code: refCode},{where: {usId : id}})
+            await Rewiews.update({ login: login},{where: {usId : id}})
             const user = await User.findOne({where: {id}})
             const userInfo = await UserInfoOpen.findOne({where:{login: user.login}})
             const token = generateJWT(user.id, user.login, user.email, user.balance, user.avatar, userInfo.name, userInfo.surname, user.role, userInfo.code, user.room, user.roomLvl,user.price)
