@@ -13,6 +13,12 @@ class RewiewsController{
     }
     async postRew(req,res, next){
         let {id, login, text, avatar, page} = req.body
+        if(text.length > 200){
+            return next(ApiError.badRequest('Отзыв больше 200 символов'))
+        }
+        if(text.length < 10){
+            return next(ApiError.badRequest('Отзыв меньше 10 символов'))
+        }
         const candidate = await Rewiews.findOne({where: {login}})
         if(candidate){
             return next(ApiError.badRequest('Вы уже добавили отзыв'))
@@ -27,7 +33,7 @@ class RewiewsController{
             ('00' + date.getUTCHours()).slice(-2) + ':' + 
             ('00' + date.getUTCMinutes()).slice(-2) + ':' + 
             ('00' + date.getUTCSeconds()).slice(-2);
-        const newRewiew = await Rewiews.create({usId: id,login: login,text: text, data: date, avatar: avatar})
+        await Rewiews.create({usId: id,login: login,text: text, data: date, avatar: avatar})
         let allRew = await Rewiews.findAndCountAll({limit, offset})
         return res.json(allRew)
     }

@@ -18,10 +18,28 @@ const generateJWT = (id, login, email, balance,avatar, usname, ussurname, role, 
 class UserController{
     async registration(req,res, next){
         try {
-            const {login, password, email, role, code, flag } = req.body
-        if(!email || !password) {
-            return next(ApiError.badRequest('Некорректный email или пароль'))
-        }
+            let {login, password, confpassword, email, role, code, flag } = req.body
+            login = login.replace(/\s/g, '')
+            email = email.replace(/\s/g, '')
+            password = password.replace(/\s/g, '')
+            if(login.length > 20){
+                return next(ApiError.badRequest('Логин больше 20 символов'))
+            }
+            if(login.length < 4){
+                return next(ApiError.badRequest('Логин меньше 4 символов'))
+            }
+            if(password.length < 4){
+                return next(ApiError.badRequest('Пароль меньше 4 символов'))
+            }
+            if(password != confpassword){
+                return next(ApiError.badRequest('Пароли не совпадают'))
+            }
+            if(email.length > 20){
+                return next(ApiError.badRequest('Почта больше 20 символов'))
+            }
+            if(email.length < 4){
+                return next(ApiError.badRequest('Почта меньше 4 символов'))
+            }
         const candidate = await User.findOne({where: {login}})
         if(candidate){
             return next(ApiError.badRequest('Пользователь с таким логином уже существует'))
@@ -51,7 +69,7 @@ class UserController{
         const cand = await UserInfoOpen.findOne({where: {code: code}}) 
         let leadCode = 0;
         if(cand){
-            leadCode = cand.id
+            leadCode = cand.usId
         } 
         const user = await User.create({login: login, password: hashPassword, email: email, balance: 0, avatar: fileName, role: role, leader: leadCode })
         const userInfo = await UserInfoOpen.create({usId:user.id, login: user.login, code: refCode, avatar: user.avatar, confLogin:null , confPhoto:null , confStat: null})
@@ -63,30 +81,41 @@ class UserController{
         
     }  
     async login(req,res,next){
-        const {login, password} = req.body
-        let user = await User.findOne({where:{login: login}})
-        if(!user){
-            user = await User.findOne({where:{email: login}})
+        try{
+            let {login, password} = req.body
+            login = login.replace(/\s/g, '')
+            password = password.replace(/\s/g, '')
+            let user = await User.findOne({where:{login: login}})
             if(!user){
-                return next(ApiError.internal('Пользователь не найден'))
-            } 
-        }
-        let comparePassword = bcrypt.compareSync(password, user.password)
-        if (!comparePassword){
-            return next(ApiError.internal('Указан неверный пароль'))
-        }
-        const userInfo = await UserInfoOpen.findOne({where:{login: user.login}})
-        const token = generateJWT(user.id, user.login, user.email, user.balance, user.avatar, userInfo.name, userInfo.surname, user.role, userInfo.code, user.room, user.roomLvl,user.price)
-        return res.json({token})
+                user = await User.findOne({where:{email: login}})
+                if(!user){
+                    return next(ApiError.internal('Пользователь не найден'))
+                } 
+            }
+            let comparePassword = bcrypt.compareSync(password, user.password)
+            if (!comparePassword){
+                return next(ApiError.internal('Указан неверный пароль'))
+            }
+            const userInfo = await UserInfoOpen.findOne({where:{login: user.login}})
+            const token = generateJWT(user.id, user.login, user.email, user.balance, user.avatar, userInfo.name, userInfo.surname, user.role, userInfo.code, user.room, user.roomLvl,user.price)
+            return res.json({token})}
+        catch (e) {
+                next(ApiError.badRequest(e.message))
+            }
     }
     async check(req,res, next){
-        let login = req.user.login
+        try{
+        let login = (req.user.login).replace(/\s/g, '')
         const user = await User.findOne({where:{login}}) 
         const userInfo = await UserInfoOpen.findOne({where:{login}})
         const token = generateJWT(user.id, user.login, user.email, user.balance, user.avatar, userInfo.name, userInfo.surname, user.role, userInfo.code, user.room, user.roomLvl,user.price)
-        return res.json({token})
+        return res.json({token})}
+        catch (e) {
+                next(ApiError.badRequest(e.message))
+            }
     }
     async changeProfImg(req,res,next){
+        try{
         const {login,id} = req.body
         const {file} = req.files
         const userOld = await User.findOne({where: {id}})
@@ -97,11 +126,41 @@ class UserController{
         const userInfo = await UserInfoOpen.findOne({where:{login: user.login}})
         await Rewiews.update({ avatar: fileName},{where: {usId : id}})
         const token = generateJWT(user.id, user.login, user.email, user.balance, user.avatar, userInfo.name, userInfo.surname, user.role, userInfo.code, user.room, user.roomLvl,user.price)
-        return res.json({token})
+        return res.json({token})}
+        catch (e) {
+                next(ApiError.badRequest(e.message))
+            }
     }
     async changeProfCommon(req,res,next){
-        
-            const {id,login,email,name,surname,refCode} = req.body
+        try{
+            let {id,login,email,name,surname,refCode} = req.body
+            login = login.replace(/\s/g, '')
+            email = email.replace(/\s/g, '')
+            refCode = refCode.replace(/\s/g, '')
+            if(login.length > 20){
+                next(ApiError.badRequest('Логин больше 20 символов'))
+            }
+            if(login.length < 4){
+                next(ApiError.badRequest('Логин меньше 4 символов'))
+            }
+            if(email.length > 20){
+                next(ApiError.badRequest('Почта больше 20 символов'))
+            }
+            if(email.length < 4){
+                next(ApiError.badRequest('Почта меньше 4 символов'))
+            }
+            if(refCode.length > 40){
+                next(ApiError.badRequest('Пригласительный код больше 40 символов'))
+            }
+            if(refCode.length < 4){
+                next(ApiError.badRequest('Пригласительный код меньше 4 символов'))
+            }
+            if(name.length > 20){
+                next(ApiError.badRequest('Имя больше 20 символов'))
+            }
+            if(surname.length > 20){
+                next(ApiError.badRequest('Фамилия больше 20 символов'))
+            }
             let candidate = await User.findOne({where: {login}})
             if(candidate){
                 if(candidate.id != id){
@@ -126,10 +185,14 @@ class UserController{
             const user = await User.findOne({where: {id}})
             const userInfo = await UserInfoOpen.findOne({where:{login: user.login}})
             const token = generateJWT(user.id, user.login, user.email, user.balance, user.avatar, userInfo.name, userInfo.surname, user.role, userInfo.code, user.room, user.roomLvl,user.price)
-            return res.json({token})
+            return res.json({token})}
+            catch (e) {
+                    next(ApiError.badRequest(e.message))
+                }
         
     }
     async changeProfSecurity(req,res,next){
+        try{
             const {id,password,nowPassword} = req.body
             const candidate = await User.findOne({where: {id}})
             let comparePassword = bcrypt.compareSync(nowPassword, candidate.password)
@@ -141,18 +204,26 @@ class UserController{
             const user = await User.findOne({where: {id}})
             const userInfo = await UserInfoOpen.findOne({where:{login: user.login}})
             const token = generateJWT(user.id, user.login, user.email, user.balance, user.avatar, userInfo.name, userInfo.surname, user.role, userInfo.code, user.room, user.roomLvl,user.price)
-            return res.json({token})
+            return res.json({token})}
+            catch (e) {
+                    next(ApiError.badRequest(e.message))
+                }
     }
     async changeProfOther(req,res,next){
+        try{
             const {id,confLogin,confPhoto,confStat} = req.body
             const candidate = await User.findOne({where: {id}})
             await User.update({confLogin:confLogin,confPhoto:confPhoto,confStat:confStat},{where: {id}})
             const user = await User.findOne({where: {id}})
             const userInfo = await UserInfoOpen.findOne({where:{login: user.login}})
             const token = generateJWT(user.id, user.login, user.email, user.balance, user.avatar, userInfo.name, userInfo.surname, user.role, userInfo.code, user.room, user.roomLvl,user.price)
-            return res.json({token})
+            return res.json({token})}
+            catch (e) {
+                    next(ApiError.badRequest(e.message))
+                }
     }
     async httpGetDiscount(req,res,next){
+        try{
             const {id} = req.params
             let user = await User.findOne(
                 {
@@ -209,7 +280,10 @@ class UserController{
                 user: user,
                 progress: users.countroomuser
             }
-            return res.json({listUs})
+            return res.json({listUs})}
+            catch (e) {
+                    next(ApiError.badRequest(e.message))
+                }
     }
 }
 

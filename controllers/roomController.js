@@ -153,15 +153,75 @@ class RoomController{
         }
         if(parseInt(profile.balance) >= parseInt(newPrice) && profile.room === 0){
             let newBalance = parseInt(profile.balance) - parseInt(newPrice)
-           const emptyRoom = await firstLvl.findAndCountAll(
+
+            let randRoomId;
+        if(profile.leader>0 && !profile.useLeader){
+            const leadProf = await User.findOne(
+                {
+                    attributes: ['id', 'room', 'roomLvl'],
+                    where: {id: profile.leader},
+                },
+            )
+            const leadProfRoom = await Rooms.findOne(
+                {
+                    attributes: ['id', 'roomId', 'roomprice'],
+                    where: {roomId:leadProf.room, roomLvl:leadProf.roomLvl},
+                },
+            )
+            if(leadProf.room>0 && leadProfRoom.roomprice === parseInt(price)){
+                if(leadProf.roomLvl === 1){
+                    randRoomId = leadProf.room
+                }
+                else if(leadProf.roomLvl === 2){
+                    const leadRoom = await secondLvl.findOne(
+                        {
+                            attributes: ['id', 'binding'],
+                            where: {id: leadProf.room},
+                        }
+                    )
+                    randRoomId = leadRoom.binding
+                }
+                else if(leadProf.roomLvl === 3){
+                    const leadRoom = await thirdLvl.findOne(
+                        {
+                            attributes: ['id', 'binding'],
+                            where: {id: leadProf.room},
+                        }
+                    )
+                    randRoomId = leadRoom.binding
+                }
+                else{
+                    const emptyRoom = await firstLvl.findAndCountAll(
+                        {
+                            attributes: ['id'],
+                            where: {price: price, countroomuser: { [Op.lt]: 16}},
+                        },
+                    )
+                    const randRoomNum = Math.floor(Math.random() * (emptyRoom.count - 0) + 0)
+                    randRoomId = emptyRoom.rows[randRoomNum].id
+                }
+            }
+            else{
+                const emptyRoom = await firstLvl.findAndCountAll(
+                    {
+                        attributes: ['id'],
+                        where: {price: price, countroomuser: { [Op.lt]: 16}},
+                    },
+                )
+                const randRoomNum = Math.floor(Math.random() * (emptyRoom.count - 0) + 0)
+                randRoomId = emptyRoom.rows[randRoomNum].id
+            }
+        }
+        else{
+            const emptyRoom = await firstLvl.findAndCountAll(
                 {
                     attributes: ['id'],
                     where: {price: price, countroomuser: { [Op.lt]: 16}},
                 },
             )
-
             const randRoomNum = Math.floor(Math.random() * (emptyRoom.count - 0) + 0)
-            const randRoomId = emptyRoom.rows[randRoomNum].id
+            randRoomId = emptyRoom.rows[randRoomNum].id
+        }
             const myNewRoom = await firstLvl.findOne(
                 {
                     where: {id: randRoomId},
