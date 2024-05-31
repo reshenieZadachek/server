@@ -10,5 +10,5 @@ router.use('/user', userRouter)
 router.use('/profile', profileRouter)
 router.use('/rewiews', RewiewsRouter)
 router.use('/room', roomRouter)
-router.use('/stat', statRouter)
+router.use('/st', statRouter)
 module.exports = router

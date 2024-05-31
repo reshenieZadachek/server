@@ -153,15 +153,15 @@ class RoomController{
         }
         if(parseInt(profile.balance) >= parseInt(newPrice) && profile.room === 0){
             let newBalance = parseInt(profile.balance) - parseInt(newPrice)
-            const emptyRoom = await Rooms.findAndCountAll(
+           const emptyRoom = await firstLvl.findAndCountAll(
                 {
-                    attributes: ['id', 'roomId', 'roomLvl'],
-                    where: {roomprice: price, countroomuser: { [Op.lt]: 16}},
+                    attributes: ['id'],
+                    where: {price: price, countroomuser: { [Op.lt]: 16}},
                 },
             )
 
             const randRoomNum = Math.floor(Math.random() * (emptyRoom.count - 0) + 0)
-            const randRoomId = emptyRoom.rows[randRoomNum].roomId
+            const randRoomId = emptyRoom.rows[randRoomNum].id
             const myNewRoom = await firstLvl.findOne(
                 {
                     where: {id: randRoomId},
@@ -174,6 +174,26 @@ class RoomController{
             }
             else{
                 newRoomUsers += ',' + profile.id
+            }
+            const check1lvlStat = await allStat.findOne(
+                {
+                    where: {price: parseInt(price)}
+                }
+            )
+            if(check1lvlStat){
+                const room1lvlconst = await allStat.findOne(
+                    {
+                        attributes: ['room1lvl'],
+                        where: {price: price}
+                    }
+                )
+                const newCount = room1lvlconst.room1lvl + 1
+                await allStat.update({room1lvl: newCount},{where: {price: parseInt(price)}})
+            }
+            else{
+                const room1lvlconst = await allStat.create({room1lvl: 0, room2lvl: 0, room1lvl: 0, price: parseInt(price)})
+                const newCount = room1lvlconst.room1lvl + 1                           
+                await allStat.update({room1lvl: newCount},{where: {price: parseInt(price)}})
             }
             const newCount = parseInt(myNewRoom.countroomuser) + 1
             if(parseInt(newCount) === 16){
@@ -215,26 +235,8 @@ class RoomController{
                     await User.update({ balance: NewBalUs3, room: 0, roomLvl: 0, price:0 },{where: {id: bind3RoomUser.id}})
                     await thirdLvl.update({ roomusers: 0, countroomuser: 0, binding: 0 },{where: {id: idBind3Room}})
 
-                    const check3lvlStat = await allStat.findOne(
-                        {
-                            where: {price: price}
-                        }
-                    )
-                    if(check3lvlStat){
-                        const room3lvlconst = await allStat.findOne(
-                            {
-                                attributes: ['room3lvl'],
-                                where: {price: parseInt(price)}
-                            }
-                        )
-                        const newCount = room3lvlconst.room3lvl + 1
-                        await allStat.update({room3lvl: newCount},{where: {price: parseInt(price)}})
-                    }
-                    else{
-                        const room3lvlconst = await allStat.create({room1lvl: 0, room2lvl: 0, room3lvl: 0, price: parseInt(price)})
-                        const newCount = room3lvlconst.room3lvl + 1                        
-                        await allStat.update({room3lvl: room3lvl+1},{where: {price: parseInt(price)}})
-                    }
+                    
+                    
                 }
                 
                 if(myNewRoom.binding2){
@@ -284,25 +286,25 @@ class RoomController{
                         }
                         await secondLvl.update({ countroomuser: 0, roomusers: 0, binding: 0},{where: {id: idBind2Room}})
                         await firstLvl.update({ binding2: 0},{where: {binding2: idBind2Room}})
-                        const check2lvlStat = await allStat.findOne(
+                        const check3lvlStat = await allStat.findOne(
                             {
-                                where: {price: parseInt(price)}
+                                where: {price: price}
                             }
                         )
-                        if(check2lvlStat){
-                            const room2lvlconst = await allStat.findOne(
+                        if(check3lvlStat){
+                            const room3lvlconst = await allStat.findOne(
                                 {
-                                    attributes: ['room2lvl'],
+                                    attributes: ['room3lvl'],
                                     where: {price: parseInt(price)}
                                 }
                             )
-                            const newCount = room2lvlconst.room2lvl + 1
-                            await allStat.update({room2lvl: newCount},{where: {price: parseInt(price)}})
+                            const newCount = room3lvlconst.room3lvl + 1
+                            await allStat.update({room3lvl: newCount},{where: {price: parseInt(price)}})
                         }
                         else{
-                            const room2lvlconst = await allStat.create({room1lvl: 0, room2lvl: 0, room3lvl: 0, price: parseInt(price)})  
-                            const newCount = room2lvlconst.room2lvl + 1                          
-                            await allStat.update({room2lvl: newCount},{where: {price: parseInt(price)}})
+                            const room3lvlconst = await allStat.create({room1lvl: 0, room2lvl: 0, room3lvl: 0, price: parseInt(price)})
+                            const newCount = room3lvlconst.room3lvl + 1                        
+                            await allStat.update({room3lvl: room3lvl+1},{where: {price: parseInt(price)}})
                         }
 
                         
@@ -332,26 +334,25 @@ class RoomController{
                     let mas_id = masRoom2Users[i].split(',')
                     for (let e = 0; e < 4; e++) {
                         await User.update({ room: new2Room.id, roomLvl: 2 },{where: {id: mas_id[e]}})
-                        
-                        const check1lvlStat = await allStat.findOne(
+                        const check2lvlStat = await allStat.findOne(
                             {
                                 where: {price: parseInt(price)}
                             }
                         )
-                        if(check1lvlStat){
-                            const room1lvlconst = await allStat.findOne(
+                        if(check2lvlStat){
+                            const room2lvlconst = await allStat.findOne(
                                 {
-                                    attributes: ['room1lvl'],
-                                    where: {price: price}
+                                    attributes: ['room2lvl'],
+                                    where: {price: parseInt(price)}
                                 }
                             )
-                            const newCount = room1lvlconst.room1lvl + 1
-                            await allStat.update({room1lvl: newCount},{where: {price: parseInt(price)}})
+                            const newCount = room2lvlconst.room2lvl + 1
+                            await allStat.update({room2lvl: newCount},{where: {price: parseInt(price)}})
                         }
                         else{
-                            const room1lvlconst = await allStat.create({room1lvl: 0, room2lvl: 0, room1lvl: 0, price: parseInt(price)})
-                            const newCount = room1lvlconst.room1lvl + 1                           
-                            await allStat.update({room1lvl: newCount},{where: {price: parseInt(price)}})
+                            const room2lvlconst = await allStat.create({room1lvl: 0, room2lvl: 0, room3lvl: 0, price: parseInt(price)})  
+                            const newCount = room2lvlconst.room2lvl + 1                          
+                            await allStat.update({room2lvl: newCount},{where: {price: parseInt(price)}})
                         }
                         
                     }

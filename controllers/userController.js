@@ -26,6 +26,10 @@ class UserController{
         if(candidate){
             return next(ApiError.badRequest('Пользователь с таким логином уже существует'))
         }
+	const candidate1 = await User.findOne({where: {email}})
+        if(candidate1){
+            return next(ApiError.badRequest('Пользователь с таким email уже существует'))
+        }
         const hashPassword = await bcrypt.hash(password, 5)
         let fileName
         if(flag === 'true'){
@@ -91,7 +95,7 @@ class UserController{
         await User.update({avatar:fileName},{where: {id}})
         const user = await User.findOne({where: {id}})
         const userInfo = await UserInfoOpen.findOne({where:{login: user.login}})
-        await Rewiews.update({ avatar: fileName},{where: {id}})
+        await Rewiews.update({ avatar: fileName},{where: {usId : id}})
         const token = generateJWT(user.id, user.login, user.email, user.balance, user.avatar, userInfo.name, userInfo.surname, user.role, userInfo.code, user.room, user.roomLvl,user.price)
         return res.json({token})
     }
@@ -112,7 +116,7 @@ class UserController{
             }
             candidate = await UserInfoOpen.findOne({where: {code: refCode}})
             if(candidate){
-                if(candidate.id != id){
+                if(candidate.usId != id){
                     return next(ApiError.badRequest('Пользователь с таким кодом уже существует'))
                 }
             }
@@ -161,7 +165,7 @@ class UserController{
             if (roomlvl === 0) {
                 let listUs = {
                     user: user,
-                    progress: 'Вы не вступили в комнату'
+                    progress: 'Вы не вступили в группу'
                 }
                 return res.json({listUs})
             }
