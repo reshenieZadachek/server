@@ -14,6 +14,8 @@ const User = sequelize.define('user',{
     leader:{type: DataTypes.STRING, defaultValue: 0},
     useLeader:{type: DataTypes.INTEGER, defaultValue: 0},
     role :{type: DataTypes.STRING, defaultValue: 'USER'},
+    end :{type: DataTypes.INTEGER, defaultValue: 0},
+    isBanned: { type: DataTypes.BOOLEAN, defaultValue: false }
 })
 
 const UserInfoOpen = sequelize.define('user_info',{
@@ -78,11 +80,27 @@ const peopleStat = sequelize.define('peopleStat',{
     usId:{type: DataTypes.INTEGER, allowNull: false, defaultValue: 0},
     input:{type: DataTypes.INTEGER, allowNull: false, defaultValue: 0},
     output:{type: DataTypes.INTEGER, allowNull: false, defaultValue: 0},
-    rooms:{type: DataTypes.INTEGER, allowNull: false}, 
+    rooms:{type: DataTypes.INTEGER, allowNull: false},
+})
+const historyMoneyPopoln = sequelize.define('historyMoneyPopoln',{
+    id: {type: DataTypes.INTEGER, primaryKey:true,autoIncrement:true}, 
+    usId:{type: DataTypes.INTEGER, allowNull: false, defaultValue: 0},
+    value:{type: DataTypes.INTEGER, allowNull: false, defaultValue: 0},
+})
+const historyMoneyvivod = sequelize.define('historyMoneyvivod',{
+    id: {type: DataTypes.INTEGER, primaryKey:true,autoIncrement:true}, 
+    usId:{type: DataTypes.INTEGER, allowNull: false, defaultValue: 0},
+    value:{type: DataTypes.INTEGER, allowNull: false, defaultValue: 0},
 })
 
 User.hasMany(Rooms)
 Rooms.belongsTo(User)
+
+User.hasMany(historyMoneyPopoln)
+historyMoneyPopoln.belongsTo(User)
+
+User.hasMany(historyMoneyvivod)
+historyMoneyvivod.belongsTo(User)
 
 User.hasOne(peopleStat)
 peopleStat.belongsTo(User)
@@ -122,4 +140,6 @@ module.exports = {
     thirdLvl,
     allStat,
     peopleStat,
+    historyMoneyPopoln,
+    historyMoneyvivod
 }

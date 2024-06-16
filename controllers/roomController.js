@@ -144,10 +144,13 @@ class RoomController{
         let newPrice = parseInt(price)
         const profile = await User.findOne(
             {
-                attributes: ['id', 'balance', 'room', 'roomLvl', 'leader', 'useLeader'],
+                attributes: ['id', 'balance', 'room', 'roomLvl', 'leader', 'useLeader', 'isBanned'],
                 where: {id: id},
             },
         )
+        if(profile.isBanned){
+            return res.json('Ваш аккаунт был заморожен')
+        }
         if(profile.leader>0 && !profile.useLeader){
             newPrice = price - (price*0.1)
         }
@@ -155,6 +158,12 @@ class RoomController{
             let newBalance = parseInt(profile.balance) - parseInt(newPrice)
 
             let randRoomId;
+            const emptyRoom = await firstLvl.findAndCountAll(
+                {
+                    where: {price: price, countroomuser: { [Op.lt]: 16}},
+                },
+            )
+            const randRoomNum = Math.floor(Math.random() * (emptyRoom.count - 0) + 0)
         if(profile.leader>0 && !profile.useLeader){
             const leadProf = await User.findOne(
                 {
@@ -191,37 +200,18 @@ class RoomController{
                     randRoomId = leadRoom.binding
                 }
                 else{
-                    const emptyRoom = await firstLvl.findAndCountAll(
-                        {
-                            attributes: ['id'],
-                            where: {price: price, countroomuser: { [Op.lt]: 16}},
-                        },
-                    )
-                    const randRoomNum = Math.floor(Math.random() * (emptyRoom.count - 0) + 0)
                     randRoomId = emptyRoom.rows[randRoomNum].id
                 }
             }
             else{
-                const emptyRoom = await firstLvl.findAndCountAll(
-                    {
-                        attributes: ['id'],
-                        where: {price: price, countroomuser: { [Op.lt]: 16}},
-                    },
-                )
-                const randRoomNum = Math.floor(Math.random() * (emptyRoom.count - 0) + 0)
+                console.log(emptyRoom);
                 randRoomId = emptyRoom.rows[randRoomNum].id
             }
         }
         else{
-            const emptyRoom = await firstLvl.findAndCountAll(
-                {
-                    attributes: ['id'],
-                    where: {price: price, countroomuser: { [Op.lt]: 16}},
-                },
-            )
-            const randRoomNum = Math.floor(Math.random() * (emptyRoom.count - 0) + 0)
             randRoomId = emptyRoom.rows[randRoomNum].id
         }
+        randRoomId = 1 //ТУТ СТРОЧКУ УБРАТЬ НАДО
             const myNewRoom = await firstLvl.findOne(
                 {
                     where: {id: randRoomId},
@@ -292,11 +282,8 @@ class RoomController{
                         await User.update({ balance: leaderBalance},{where: {id: bind3RoomUser.leader}})
                     }
                     const NewBalUs3 = bind3RoomUser.balance + (price*10)
-                    await User.update({ balance: NewBalUs3, room: 0, roomLvl: 0, price:0 },{where: {id: bind3RoomUser.id}})
+                    await User.update({ balance: NewBalUs3, room: 0, roomLvl: 0, price:0, end: price*10},{where: {id: bind3RoomUser.id}})
                     await thirdLvl.update({ roomusers: 0, countroomuser: 0, binding: 0 },{where: {id: idBind3Room}})
-
-                    
-                    
                 }
                 
                 if(myNewRoom.binding2){
@@ -488,7 +475,7 @@ class RoomController{
                     where: {id: randRoomId},
                 },
             )
-            let num = myNewRoom.countroomuser + 16
+            let num = myNewRoom.countroomuser + 32
             let refCode = uuid.v4()
             const hashPassword = await bcrypt.hash(password, 5) 
             const user = await User.create({login: `login${num}`, password: hashPassword, email: `login${num}@gmail.com`, balance: 1000, avatar: 'e826f86a-6053-400d-a2b0-18714aba4aef.jpg', role: 'USER', leader: 0, room: randRoomId, roomLvl: 1, price: 1000})
@@ -519,6 +506,16 @@ class RoomController{
             }
         )
         return res.json(`я работаю`)  
+    }
+    async End0(req,res){
+        try{
+            const { id } = req.body
+            await User.update({ end: 0},{where: {id: id}})
+            return res.json(`Готово`)  
+        }
+        catch(err){
+            return res.json(`Что то пошло не так: ${err}`)  
+        }
     }
 }
  

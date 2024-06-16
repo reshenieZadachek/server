@@ -1,4 +1,4 @@
-const { User, UserInfoOpen } = require("../models/models")
+const { sequelize, User, UserInfoOpen, historyMoneyPopoln, historyMoneyvivod } = require("../models/models")
 
 class ProfileController{
     async getOne(req,res){
@@ -10,7 +10,10 @@ class ProfileController{
                 //include: [{model: nameModel, as: 'info'}]
             },
         )
-        return res.json(profile)
+        const popoln = await historyMoneyPopoln.sum('value', { where: { usId: id } })
+        const vivod = await historyMoneyvivod.sum('value', { where: { usId: id } })
+        const mas = {profile:profile, historyPopoln: popoln, historyVivel: vivod}
+        return res.json(mas)
     }
 }
 

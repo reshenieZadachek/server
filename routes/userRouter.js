@@ -9,6 +9,7 @@ router.post('/change/img', UserController.changeProfImg)
 router.post('/change/common', UserController.changeProfCommon)
 router.post('/change/security', UserController.changeProfSecurity)
 router.get('/getLead/:id', UserController.httpGetDiscount)
+router.get('/myhistory', authMiddleware, UserController.getMyHistory)
 //router.post('/change/other', UserController.changeProfOther)
 router.get('/auth', authMiddleware, UserController.check)
 

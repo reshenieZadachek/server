@@ -26,13 +26,13 @@ class RewiewsController{
         page = page || 1
         let limit = 3
         let offset = (page * limit - limit)
-        let date = new Date()
-        date = date.getUTCFullYear() + '-' +
-            ('00' + (date.getUTCMonth()+1)).slice(-2) + '-' +
-            ('00' + date.getUTCDate()).slice(-2) + ' ' + 
-            ('00' + date.getUTCHours()).slice(-2) + ':' + 
-            ('00' + date.getUTCMinutes()).slice(-2) + ':' + 
-            ('00' + date.getUTCSeconds()).slice(-2);
+        const today = new Date();
+        const year = today.getFullYear();
+        const month = String(today.getMonth() + 1).padStart(2, '0'); // Месяцы в JavaScript начинаются с 0
+        const day = String(today.getDate()).padStart(2, '0');
+
+        const date = `${year}-${month}-${day}`;
+        console.log(date);
         await Rewiews.create({usId: id,login: login,text: text, data: date, avatar: avatar})
         let allRew = await Rewiews.findAndCountAll({limit, offset})
         return res.json(allRew)

@@ -1,15 +1,32 @@
 const ApiError = require("../error/apiError")
 const bcrypt = require('bcrypt')
-const {User, UserInfoOpen, Rewiews, firstLvl, secondLvl, thirdLvl, Rooms} = require('../models/models')
+const {User, UserInfoOpen, Rewiews, firstLvl, secondLvl, thirdLvl, Rooms, historyMoneyPopoln, historyMoneyvivod} = require('../models/models')
 const jwt = require('jsonwebtoken')
 const uuid = require('uuid')
 const path = require('path')
 const { userInfo } = require("os")
 const e = require("cors")
 
-const generateJWT = (id, login, email, balance,avatar, usname, ussurname, role, code, room, roomlvl, price) => {
+const generateJWT = (id, login, email, balance,avatar, usname, ussurname, role, code, room, roomlvl, price, end, isBanned) => {
+    if(isBanned){
+        email = 'bannedUser'
+        usname = 'bannedUser'
+        ussurname = 'bannedUser'
+        code = 'bannedUser'
+        room = 'bannedUser'
+        roomlvl = 'bannedUser'
+        price = '0'
+        balance = '0'
+        end = 'bannedUser'
+        avatar = 'prof.svg'
+        return jwt.sign(
+            {id, login, email, balance, avatar, usname, ussurname, role, code, room, roomlvl, price, end, isBanned}, 
+            process.env.SECRET_KEY,
+            {expiresIn: '24h'}
+        )
+    }
     return jwt.sign(
-        {id, login, email, balance, avatar, usname, ussurname, role, code, room, roomlvl, price}, 
+        {id, login, email, balance, avatar, usname, ussurname, role, code, room, roomlvl, price, end, isBanned}, 
         process.env.SECRET_KEY,
         {expiresIn: '24h'}
     )
@@ -71,9 +88,9 @@ class UserController{
         if(cand){
             leadCode = cand.usId
         } 
-        const user = await User.create({login: login, password: hashPassword, email: email, balance: 0, avatar: fileName, role: role, leader: leadCode })
+        const user = await User.create({login: login, password: hashPassword, email: email, balance: 1000, avatar: fileName, role: role, leader: leadCode })
         const userInfo = await UserInfoOpen.create({usId:user.id, login: user.login, code: refCode, avatar: user.avatar, confLogin:null , confPhoto:null , confStat: null})
-        const token = generateJWT(user.id, user.login, user.email, user.balance, user.avatar, userInfo.name, userInfo.surname, user.role, userInfo.code, user.room, user.roomLvl,user.price)
+        const token = generateJWT(user.id, user.login, user.email, user.balance, user.avatar, userInfo.name, userInfo.surname, user.role, userInfo.code, user.room, user.roomLvl,user.price, user.end, user.isBanned)
         return res.json({token})
         } catch (e) {
             next(ApiError.badRequest(e.message))
@@ -97,7 +114,8 @@ class UserController{
                 return next(ApiError.internal('Указан неверный пароль'))
             }
             const userInfo = await UserInfoOpen.findOne({where:{login: user.login}})
-            const token = generateJWT(user.id, user.login, user.email, user.balance, user.avatar, userInfo.name, userInfo.surname, user.role, userInfo.code, user.room, user.roomLvl,user.price)
+            const token = generateJWT(user.id, user.login, user.email, user.balance, user.avatar, userInfo.name, userInfo.surname, user.role, userInfo.code, user.room, user.roomLvl,user.price, user.end, user.isBanned)
+        return res.json({token})
             return res.json({token})}
         catch (e) {
                 next(ApiError.badRequest(e.message))
@@ -108,7 +126,8 @@ class UserController{
         let login = (req.user.login).replace(/\s/g, '')
         const user = await User.findOne({where:{login}}) 
         const userInfo = await UserInfoOpen.findOne({where:{login}})
-        const token = generateJWT(user.id, user.login, user.email, user.balance, user.avatar, userInfo.name, userInfo.surname, user.role, userInfo.code, user.room, user.roomLvl,user.price)
+        console.log(user);
+        const token = generateJWT(user.id, user.login, user.email, user.balance, user.avatar, userInfo.name, userInfo.surname, user.role, userInfo.code, user.room, user.roomLvl,user.price, user.end, user.isBanned)
         return res.json({token})}
         catch (e) {
                 next(ApiError.badRequest(e.message))
@@ -125,10 +144,10 @@ class UserController{
         const user = await User.findOne({where: {id}})
         const userInfo = await UserInfoOpen.findOne({where:{login: user.login}})
         await Rewiews.update({ avatar: fileName},{where: {usId : id}})
-        const token = generateJWT(user.id, user.login, user.email, user.balance, user.avatar, userInfo.name, userInfo.surname, user.role, userInfo.code, user.room, user.roomLvl,user.price)
+        const token = generateJWT(user.id, user.login, user.email, user.balance, user.avatar, userInfo.name, userInfo.surname, user.role, userInfo.code, user.room, user.roomLvl,user.price, user.end, user.isBanned)
         return res.json({token})}
         catch (e) {
-                next(ApiError.badRequest(e.message))
+            return next(ApiError.badRequest(e.message))
             }
     }
     async changeProfCommon(req,res,next){
@@ -138,28 +157,28 @@ class UserController{
             email = email.replace(/\s/g, '')
             refCode = refCode.replace(/\s/g, '')
             if(login.length > 20){
-                next(ApiError.badRequest('Логин больше 20 символов'))
+                return next(ApiError.badRequest('Логин больше 20 символов'))
             }
             if(login.length < 4){
-                next(ApiError.badRequest('Логин меньше 4 символов'))
+                return next(ApiError.badRequest('Логин меньше 4 символов'))
             }
             if(email.length > 20){
-                next(ApiError.badRequest('Почта больше 20 символов'))
+                return next(ApiError.badRequest('Почта больше 20 символов'))
             }
             if(email.length < 4){
-                next(ApiError.badRequest('Почта меньше 4 символов'))
+                return next(ApiError.badRequest('Почта меньше 4 символов'))
             }
             if(refCode.length > 40){
-                next(ApiError.badRequest('Пригласительный код больше 40 символов'))
+                return next(ApiError.badRequest('Пригласительный код больше 40 символов'))
             }
             if(refCode.length < 4){
-                next(ApiError.badRequest('Пригласительный код меньше 4 символов'))
+                return next(ApiError.badRequest('Пригласительный код меньше 4 символов'))
             }
             if(name.length > 20){
-                next(ApiError.badRequest('Имя больше 20 символов'))
+                return next(ApiError.badRequest('Имя больше 20 символов'))
             }
             if(surname.length > 20){
-                next(ApiError.badRequest('Фамилия больше 20 символов'))
+                return next(ApiError.badRequest('Фамилия больше 20 символов'))
             }
             let candidate = await User.findOne({where: {login}})
             if(candidate){
@@ -184,10 +203,10 @@ class UserController{
             await Rewiews.update({ login: login},{where: {usId : id}})
             const user = await User.findOne({where: {id}})
             const userInfo = await UserInfoOpen.findOne({where:{login: user.login}})
-            const token = generateJWT(user.id, user.login, user.email, user.balance, user.avatar, userInfo.name, userInfo.surname, user.role, userInfo.code, user.room, user.roomLvl,user.price)
+            const token = generateJWT(user.id, user.login, user.email, user.balance, user.avatar, userInfo.name, userInfo.surname, user.role, userInfo.code, user.room, user.roomLvl,user.price, user.end, user.isBanned)
             return res.json({token})}
             catch (e) {
-                    next(ApiError.badRequest(e.message))
+                return next(ApiError.badRequest(e.message))
                 }
         
     }
@@ -203,10 +222,10 @@ class UserController{
             await User.update({password:hashPassword},{where: {id}})
             const user = await User.findOne({where: {id}})
             const userInfo = await UserInfoOpen.findOne({where:{login: user.login}})
-            const token = generateJWT(user.id, user.login, user.email, user.balance, user.avatar, userInfo.name, userInfo.surname, user.role, userInfo.code, user.room, user.roomLvl,user.price)
+            const token = generateJWT(user.id, user.login, user.email, user.balance, user.avatar, userInfo.name, userInfo.surname, user.role, userInfo.code, user.room, user.roomLvl,user.price, user.end, user.isBanned)
             return res.json({token})}
             catch (e) {
-                    next(ApiError.badRequest(e.message))
+                return next(ApiError.badRequest(e.message))
                 }
     }
     async changeProfOther(req,res,next){
@@ -216,10 +235,10 @@ class UserController{
             await User.update({confLogin:confLogin,confPhoto:confPhoto,confStat:confStat},{where: {id}})
             const user = await User.findOne({where: {id}})
             const userInfo = await UserInfoOpen.findOne({where:{login: user.login}})
-            const token = generateJWT(user.id, user.login, user.email, user.balance, user.avatar, userInfo.name, userInfo.surname, user.role, userInfo.code, user.room, user.roomLvl,user.price)
+            const token = generateJWT(user.id, user.login, user.email, user.balance, user.avatar, userInfo.name, userInfo.surname, user.role, userInfo.code, user.room, user.roomLvl,user.price, user.end, user.isBanned)
             return res.json({token})}
             catch (e) {
-                    next(ApiError.badRequest(e.message))
+                return next(ApiError.badRequest(e.message))
                 }
     }
     async httpGetDiscount(req,res,next){
@@ -282,8 +301,32 @@ class UserController{
             }
             return res.json({listUs})}
             catch (e) {
-                    next(ApiError.badRequest(e.message))
+                return next(ApiError.badRequest(e.message))
                 }
+    }
+    async getMyHistory(req,res, next){
+        const { id } = req.query
+        if (req.user) {
+            if (req.user.id == id ) {
+                const popoln = await historyMoneyPopoln.findAll(
+                    {
+                        where:{usId: id}
+                    }
+                )
+                const vivod = await historyMoneyvivod.findAll(
+                    {
+                        where:{usId: id}
+                    }
+                )
+                const mas = {
+                    popoln: popoln,
+                    vivod: vivod,
+                }
+                return res.json(mas)
+            }
+            return res.json('Вы запрапшиваете не вашу статистику')
+        }
+        return res.json('Вы запрапшиваете не вашу статистику')
     }
 }
 
