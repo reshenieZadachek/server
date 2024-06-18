@@ -35,7 +35,9 @@ class RewiewsController{
         console.log(date);
         await Rewiews.create({usId: id,login: login,text: text, data: date, avatar: avatar})
         let allRew = await Rewiews.findAndCountAll({limit, offset})
+        console.log(allRew);
         return res.json(allRew)
+        
     }
 }
 

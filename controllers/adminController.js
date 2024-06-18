@@ -139,6 +139,7 @@ class AdminController{
                     let limit = 3
                     let offset = (page * limit - limit)
                     let allRew = await Rewiews.findAndCountAll({limit, offset})
+                    console.log(allRew);
                     return res.json(allRew)
                 }
                 else{
