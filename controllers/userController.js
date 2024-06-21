@@ -5,6 +5,7 @@ const jwt = require('jsonwebtoken')
 const uuid = require('uuid')
 const path = require('path')
 const { userInfo } = require("os")
+const AWS = require('aws-sdk');
 const e = require("cors")
 
 const generateJWT = (id, login, email, balance,avatar, usname, ussurname, role, code, room, roomlvl, price, end, isBanned) => {
@@ -35,6 +36,13 @@ const generateJWT = (id, login, email, balance,avatar, usname, ussurname, role, 
 class UserController{
     async registration(req,res, next){
         try {
+            const s3 = new AWS.S3({
+                accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+                secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+                region: process.env.AWS_REGION,
+                endpoint: process.env.AWS_ENDPOINT, // добавляем endpoint
+                s3ForcePathStyle: true // важно для использования кастомного endpoint
+              });
             let {login, password, confpassword, email, role, code, flag } = req.body
             login = login.replace(/\s/g, '')
             email = email.replace(/\s/g, '')
@@ -69,8 +77,19 @@ class UserController{
         let fileName
         if(flag === 'true'){
             const {file} = req.files
+            console.log(file);
             fileName = uuid.v4() + ".jpg"
-            file.mv(path.resolve(__dirname, '..', 'static', fileName))
+            const params = {
+                Bucket: 'moneyslide',
+                Key: fileName,
+                Body: file.data,
+                ContentType:'image/jpeg',
+              };
+              s3.upload(params, (err, data) => {
+                if (err) {
+                  return next(ApiError.badRequest(err.message))
+                }
+              });
         }
         else{
             fileName = "prof.svg"
@@ -137,9 +156,25 @@ class UserController{
         try{
         const {login,id} = req.body
         const {file} = req.files
-        const userOld = await User.findOne({where: {id}})
+        const s3 = new AWS.S3({
+            accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+            secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+            region: process.env.AWS_REGION,
+            endpoint: process.env.AWS_ENDPOINT, // добавляем endpoint
+            s3ForcePathStyle: true // важно для использования кастомного endpoint
+          });
         let fileName = uuid.v4() + ".jpg"
-        file.mv(path.resolve(__dirname, '..', 'static', fileName))
+        const params = {
+            Bucket: 'moneyslide',
+            Key: fileName,
+            Body: file.data,
+            ContentType:'image/jpeg',
+        };
+        s3.upload(params, (err, data) => {
+            if (err) {
+                return next(ApiError.badRequest(err.message))
+            }
+        });
         await User.update({avatar:fileName},{where: {id}})
         const user = await User.findOne({where: {id}})
         const userInfo = await UserInfoOpen.findOne({where:{login: user.login}})
